@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Urban Mobility Data Explorer</title>
+        <link rel="stylesheet" href="css/style.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <header class="site-header">
+            <div class="header-content">
+                <a href="#main-content" class="logo">
+                    <span class="logo-mark">NYC</span>
+                    <span>Urban Mobility Data Explorer</span>
+                </a>
+                <nav class="nav">
+                    <a href="#overview" class="nav-link">Overview</a>
+                    <a href="#geography" class="nav-link">Locations</a>
+                    <a href="#trip-records" class="nav-link">Trip records</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="dashboard" id="main-content">
+            <div class="page-heading">
+                <div>
+                    <p class="page-heading-small">Yellow taxi data</p>
+                    <h1 class="page-heading-title">NYC taxi trips</h1>
+                </div>
+                <span class="dataset-status">Data not loaded</span>
+            </div>
+
+            <div class="dataset-details">
+                <div>
+                    <span class="dataset-detail-name">Period</span><span>Not loaded</span>
+                </div>
+                <div>
+                    <span class="dataset-detail-name">Coverage</span><span>Not loaded</span>
+                </div>
+                <div>
+                    <span class="dataset-detail-name">Trip times</span><span>NYC local time</span>
+                </div>
+                <div>
+                    <span class="dataset-detail-name">Data quality</span><span>Not available</span>
+                </div>
+            </div>
+
+            <section class="filter-panel">
+                <div class="section-heading">
+                    <h2 id="filters-title">Filter trips</h2>
+                </div>
+                <form id="trip-filters">
+                    <div class="filter-grid">
+                        <div class="form-field">
+                            <label for="date-form">From date</label>
+                            <input type="date" id="date-form" name="dateFrom" />
+                        </div>
+                        <div class="form-field">
+                            <label for="date-to">To date</label>
+                            <input type="date" id="date-to" name="dateTo">
+                        </div>
+                        <div class="form-field">
+                            <label for="pickup-zone">Pickup zone</label>
+                            <select id="pickup-zone" name="pickupZone" disabled>
+                                <option value="">Zone not loaded</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="dropoff-zone">Dropoff zone</label>
+                            <select id="dropoff-zone" name="dropoffZone" disabled>
+                                <option value="">Zone not loaded</option>
+                            </select>
+                        </div>
+
+                        <div class="range-field">
+                            <p class="field-label">Distance (mi)</p>
+                            <div class="range-inputs">
+                                <label>Min
+                                    <input type="number" id="min-distance" name="minDistance" min="0" />
+                                </label>
+                                <label>Max
+                                    <input type="number" id="max-distance" name="maxDistance" min="0" />
+                                </label>
+                            </div>
+                        </div>
+                        <div class="range-field">
+                            <p class="field-label">Metered fare ($)</p>
+                            <div class="range-inputs">
+                                <label>Min
+                                    <input type="number" id="min-fare" name="minFare" min="0" />
+                                </label>
+                                <label>Max
+                                    <input type="number" id="max-fare" name="maxFare" min="0" />
+                                </label>
+                            </div>
+                        </div>
+                        <label class="checkbox-label" for="include-flagged">
+                            <input type="checkbox" id="include-flagged" name="includeFlagged">
+                            Include flagged records
+                        </label>
+                        <div class="filter-actions">
+                            <button class="btn btn-primary" type="button" disabled>Apply filters</button>
+                            <button class="btn btn-secondary" type="reset" disabled>Reset</button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section id="overview">
+                <div class="section-heading">
+                    <h2 id="overview-title">Trip overview</h2>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <p>Matching trips</p>
+                        <p class="metric-value">&mdash;</p>
+                    </div>
+                    <div class="summary-item">
+                        <p>Average duration</p>
+                        <p class="metric-value">&mdash;
+                            <span class="metric-unit">min</span>
+                        </p>
+                    </div>
+                    <div class="summary-item">
+                        <p>Average metered fare</p>
+                        <p class="metric-value">&mdash;
+                            <span class="metric-unit">USD</span>
+                        </p>
+                    </div>
+                </div>    
+                
+                <div class="chart-grid">
+                    <div class="panel">
+                        <div class="panel-heading">
+                            <h3 id="pickup-chart-title">Pickups by hour</h3>
+                            <p>Trip count · NYC local time</p>
+                        </div>
+                        <div id="pickup-chart" class="chart-placeholder">
+                            <p>No trip chart</p>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-heading">
+                            <h3 id="duration-chart-title">Duration by hour</h3>
+                            <p>Average minutes · NYC local time</p>
+                        </div>
+                        <div id="duration-chart" class="chart-placeholder">
+                            <p>No trip data</p>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-heading">
+                            <h3 id="fare-chart-title">Fare per mile</h3>
+                            <p>Average USD / mile · distance bands</p>
+                        </div>
+                        <div id="fare-chart" class="chart-placeholder">
+                            <p>No trip data</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="geography">
+                <div class="section-heading">
+                    <h2 id="locations-title">Locations & routes</h2>
+                </div>
+                <div class="location-grid">
+                    <div class="panel">
+                        <div class="panel-heading">
+                            <h3 id="map-title">Pickup activity</h3>
+                            <p>Pickups by taxi zone</p>
+                        </div>
+                        <div id="zone-map" class="map-placeholder">
+                            <p>No zone data</p>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-heading">
+                            <h3 id="routes-title">Busiest routes</h3>
+                            <p>Pickup → dropoff · trip count</p>
+                        </div>
+                        <div id="top-routes" class="routes-placeholder">
+                            <p>No trip data</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="trip-records">
+                <div class="section-heading">
+                    <h2 id="records-title">Trip records</h2>
+                    <div class="sort-control">
+                        <label for="trip-sort">Sort by</label>
+                        <select id="trip-sort" disabled>
+                            <option>Pickup time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="records-panel">
+                    <div class="table-scroll" tabindex="0">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Pickup time</th>
+                                    <th scope="col">Pickup zone</th>
+                                    <th scope="col">Dropoff zone</th>
+                                    <th scope="col" class="numeric">Distance (mi)</th>
+                                    <th scope="col" class="numeric">Duration (min)</th>
+                                    <th scope="col" class="numeric">Speed (mph)</th>
+                                    <th scope="col" class="numeric">Fare ($)</th>
+                                    <th scope="col" class="numeric">Fare / mi ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trip-table-body">
+                                <tr><td colspan="8" class="table-empty">No trip data</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button class="btn btn-secondary" type="button" disabled>Previous</button>
+                        <button class="btn btn-secondary" type="button" disabled>Next</button>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="page-footer">
+                <p>Made by <strong>Web Artisans</strong></p>
+            </footer>
+        </main>
+
+    </body>
+</html>    
