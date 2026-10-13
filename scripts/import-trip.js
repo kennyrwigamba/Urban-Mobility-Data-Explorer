@@ -106,5 +106,55 @@ async function importTrips(){
                 excluded = excluded + 1 ;
                 continue
             }
+            const isFlagged = result.status === "flag" ? 1 : 0;
+            if (isFlag === 1 ) {
+                flagged = flagged + 1;
+            } else {
+                normal = normal + 1;
+            }
+            batch.push([
+                importId,
+                toNull(r.VendorID),
+                r.tpep_pickup_datetime,
+                r.tpep_dropoff_datetime,
+                toNull(r.passenger_count),
+                r.trip_distance,
+                toNull(r.RateCodeID),
+                toNull(r.store_and_fwd_flag),
+                r.PULocationID,
+                r.DOLocationID,
+                toNull(r.payment_type),
+                r.fare_amount,
+                toNull(r.extra),
+                toNull(r.mta_tax),
+                toNull(r.tip_amount),
+                toNull(r.tolls_amount),
+                toNull(r.improvement_surcharge),
+                toNull(r.total_amount),
+                toNull(r.congestion_surcharge),
+                result.fingerprint,
+                isFlag,
+                result.reason || null
+            ]);
+            if (batch.length >= batchSize) {
+                await saveBatch();
+            }
         }
+        await saveBatch();
+        }catch (err){
+            await conn.querry("UPDATE data_imports SET status = 'failed', rows_read=?,accepted_normal=?, accepted_flagged=?, excluded=?, finished_at=NOW() WHERE id=?", [rowsRead,normal,flagged, excluded,importID]);
+            await conn.end();
+            throw err;
+        } 
+
+        await conn.end ();
+        console.log("import: " + importID);
+        console.log("read: " + rowsRead);
+        console.log("normal: " + normal);
+        console.log("flagged: " + flagged);
+        console.log("excluded: " + excluded);
     }
+    importTrips().catch(function(err){
+        console.error(err.message);
+        process.exit(1);
+    });
