@@ -18,6 +18,20 @@ function getFilters() {
     return filters
 }
 
+function buildTripUrl(filters) {
+    const parameters = new URLSearchParams()
+
+    for (const name in filters) {
+        const value = filters[name]
+
+        if (value !== "") {
+            parameters.set(name, value)
+        }
+    }
+
+    return "/api/trips?" + parameters.toString()
+}
+            
 function applyFilters(event) {
     event.preventDefault()
     const filters = getFilters()
@@ -37,7 +51,8 @@ function applyFilters(event) {
         return  
     }
 
-    console.log("Selected filters:", filters)
+    const tripUrl = buildTripUrl(filters)
+    console.log("Trip request URL:", tripUrl)
     filterMessage.textContent = "Trip data is not loaded yet. Filters have not been applied."
 }
 
