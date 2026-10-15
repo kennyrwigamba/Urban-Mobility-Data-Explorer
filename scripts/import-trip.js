@@ -1,160 +1,103 @@
 const fs = require("fs");
+const path = require("path");
 const crypto = require("crypto");
-const mysql = require("mysql2/promise");
-const {parse} = require("csv-parse");
-const {cleanTrip} = require("./clean-trip");
-require("dotenv").config();
+const pool = require("../backend/db");
+const { readTrips } = require("./read-trips");
+const { cleanTrip } = require("./clean-trips");
 
-function getOPtion(name, fallback){
-    const found = process.argv.find(function(a){ return a.startsWith(name + "=");});
-    if(!found){
-        return fallback;
-    }
-    return found.split("=")[1];
+async function checksumOf(fileName) {
+    const hash = crypto.createHash("sha256");
+    for await (const chunk of fs.createReadStream(fileName)) hash.update(chunk);
+    return hash.digest("hex");
 }
 
-function checksumOf(file){
-    return new Promise(function (resolve,reject){
-        const hash = crypto.createHash("sha256");
-        const stream = fs.createReadStream(file);
-        stream.on("data",function(chunck) {hash.update(chunck);});
-        stream.on("end",function() {resolve(hash.digest("hex").slice(0, 32))});
-        stream.on("error",reject);
-    });
-}
-
-function toNull (value){
-    if (value === "" || value === undefined){
-        return null;
-    }
-    return value;
-}
-
-async function importTrips(){
-    const file = getOPtion("--file", process.env.TRIP_CSV || "C:/Users/user/Downloads/yellow_tripdata_2019-01.csv")
-    const scope = getOPtion("--scope","jan2019-subject");
-    const limit = Number(getOPtion("--batch","500"));
-
-
-    const conn = await mysql.createConnection({
-        host: process.env.DB_HOST || "localhost",
-        port: Number(process.env.DB_PORT || 3306),
-        user: process.env.DB_USER || "root",
-        password: process.env.DB_PASSWORD || "",
-        database: process.env.DB_NAME || "mobility"
-    });
-
-    const zoneRows = await conn.querry("SELCT location_id FROM taxi_zones");
-    const zoneIds = new Set(zoneRows[0].map(function (r){ return r.location_id;}));
-
-    const sum = await checksumOf(file);
-    const existing = await conn.querry(
-        "SELECT id, rows_read, accepted_normal, accepted_flagged, excluded FOM data_imports WHERE checksum=? AND scope=? AND status='complete' LIMIT 1",
-        [sum, scope]
-    );
-    if (existing [0].length > 0){
-        const row = existing[0][0]; 
-        await conn.end();
-        console.log("import:" + row.id);
-        console.log("read:" + row.rows_read);
-        console.log("normal:" + row.accepted_normal);
-        console.log("flagged:" + row.accepted_flagged);
-        console.log("excluded:" + row.excluded);
-        return;
-    }
-    const created = await conn.querry(
-        "INSERT INTO data_imports (source_name,checksum, scope,cleaning_version,status) VALUES (?,?,?,?,'running')",
-        [file, sum, scope, "v1"]
-    );
-    const createdId = created[0].insertId;
-
-    let rowsRead = 0;
-    let normal = 0;
-    let flagged = 0;
-    let exluded = 0;
-    let batch = [];
-
-    async function saveBatch(){
-        for (const item of batch){
-            try{
-                 await conn.query(
-          "INSERT INTO trips (import_id, vendor_id, pickup_datetime, dropoff_datetime, passenger_count, trip_distance, ratecode_id, store_fwd_flag, pickup_zone_id, dropoff_zone_id, payment_type, fare_amount, extra, mta_tax, tip_amount, tolls_amount, improvement_surcharge, total_amount, congestion_surcharge, fingerprint, is_flagged, flag_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          item
+async function importTrips() {
+    let connection;
+    let importId;
+    try {
+        const fileName = process.argv[2] || process.env.TRIP_PARQUET || "data/yellow_tripdata_2019-01.parquet";
+        const limit = Number(process.argv[3] || 5000);
+        if (!Number.isInteger(limit) || limit < 1) throw new Error("The row limit must be a positive integer.");
+        const source = await readTrips(fileName, limit);
+        const monthMatch = path.basename(fileName).match(/(\d{4}-\d{2})\.parquet$/);
+        const sourceMonth = monthMatch ? monthMatch[1] : null;
+        const scope = "First " + source.rows.length + " rows";
+        const checksum = await checksumOf(fileName);
+        connection = await pool.getConnection();
+        const [existing] = await connection.execute(
+            "SELECT id FROM data_imports WHERE checksum=? AND scope=? AND cleaning_version='v3' AND status='complete' LIMIT 1",
+            [checksum, scope]
         );
-            }catch(err){
-                if (err.code === "ER_DUP_ENTRY"){
-                    excluded = excluded + 1;
-                }else{
-                    throw err;
+        if (existing.length) {
+            console.log("Already imported: " + existing[0].id + ". No rows added.");
+            return;
+        }
+        const [zones] = await connection.query("SELECT location_id FROM taxi_zones");
+        if (zones.length === 0) throw new Error("Import taxi zones before importing trips.");
+        const zoneIds = new Set(zones.map(function (zone) { return zone.location_id; }));
+        const [created] = await connection.execute(
+            "INSERT INTO data_imports (source_name, checksum, scope, cleaning_version, status, started_at) VALUES (?, ?, ?, 'v3', 'running', NOW())",
+            [path.basename(fileName), checksum, scope]
+        );
+        importId = created.insertId;
+        fs.mkdirSync("data/audits", { recursive: true });
+        const auditFile = "data/audits/import-" + importId + ".csv";
+        fs.writeFileSync(auditFile, "source_row,status,reason\n");
+
+        let normal = 0;
+        let flagged = 0;
+        let excluded = 0;
+        let periodStart = null;
+        let periodEnd = null;
+        await connection.beginTransaction();
+        for (let index = 0; index < source.rows.length; index++) {
+            const result = cleanTrip(source.rows[index], zoneIds, sourceMonth);
+            let reason = result.reason;
+            let status = result.status;
+            if (status !== "reject") {
+                const record = {
+                    import_id: importId,
+                    ...result.trip,
+                    fingerprint: result.fingerprint,
+                    is_flagged: status === "flag" ? 1 : 0,
+                    flag_reason: reason || null
+                };
+                try {
+                    await connection.query("INSERT INTO trips SET ?", record);
+                    if (status === "flag") flagged++;
+                    else normal++;
+                    const pickup = result.trip.pickup_datetime;
+                    if (periodStart === null || pickup < periodStart) periodStart = pickup;
+                    if (periodEnd === null || pickup > periodEnd) periodEnd = pickup;
+                } catch (error) {
+                    if (error.code !== "ER_DUP_ENTRY") throw error;
+                    status = "reject";
+                    reason = "duplicate";
                 }
             }
-        }
-        batch = [];
-    }
-
-    const parser = fs.createReadStream(file).pipe(parse({columns:true, skip_empty_lines:true}));
-
-    try{
-        for await (const r of parser){
-            if (rowsRead >= limit ){
-                parser.destroy();
-                break;
-            }
-            rowsRead = rowsRead + 1;
-            const result = cleanTrip(r, zoneIds);
-            if (result.status === "reject"){
-                excluded = excluded + 1 ;
-                continue
-            }
-            const isFlagged = result.status === "flag" ? 1 : 0;
-            if (isFlag === 1 ) {
-                flagged = flagged + 1;
-            } else {
-                normal = normal + 1;
-            }
-            batch.push([
-                importId,
-                toNull(r.VendorID),
-                r.tpep_pickup_datetime,
-                r.tpep_dropoff_datetime,
-                toNull(r.passenger_count),
-                r.trip_distance,
-                toNull(r.RateCodeID),
-                toNull(r.store_and_fwd_flag),
-                r.PULocationID,
-                r.DOLocationID,
-                toNull(r.payment_type),
-                r.fare_amount,
-                toNull(r.extra),
-                toNull(r.mta_tax),
-                toNull(r.tip_amount),
-                toNull(r.tolls_amount),
-                toNull(r.improvement_surcharge),
-                toNull(r.total_amount),
-                toNull(r.congestion_surcharge),
-                result.fingerprint,
-                isFlag,
-                result.reason || null
-            ]);
-            if (batch.length >= batchSize) {
-                await saveBatch();
+            if (status === "reject") excluded++;
+            if (status !== "accept") {
+                fs.appendFileSync(auditFile, (index + 1) + "," + (status === "reject" ? "excluded" : "flagged") + "," + reason + "\n");
             }
         }
-        await saveBatch();
-        }catch (err){
-            await conn.querry("UPDATE data_imports SET status = 'failed', rows_read=?,accepted_normal=?, accepted_flagged=?, excluded=?, finished_at=NOW() WHERE id=?", [rowsRead,normal,flagged, excluded,importID]);
-            await conn.end();
-            throw err;
-        } 
-
-        await conn.end ();
-        console.log("import: " + importID);
-        console.log("read: " + rowsRead);
-        console.log("normal: " + normal);
-        console.log("flagged: " + flagged);
-        console.log("excluded: " + excluded);
+        if (normal + flagged === 0) throw new Error("No usable trips were found. Check the audit log.");
+        await connection.execute(
+            "UPDATE data_imports SET status='complete', rows_read=?, accepted_normal=?, accepted_flagged=?, excluded=?, period_start=?, period_end=?, finished_at=NOW() WHERE id=?",
+            [source.rows.length, normal, flagged, excluded, periodStart, periodEnd, importId]
+        );
+        await connection.commit();
+        console.log(JSON.stringify({ importId, sourceRows: source.totalRows, rowsRead: source.rows.length, normal, flagged, excluded, periodStart, periodEnd, auditFile }, null, 2));
+    } catch (error) {
+        if (connection) await connection.rollback();
+        if (importId) await connection.execute("UPDATE data_imports SET status='failed', finished_at=NOW() WHERE id=?", [importId]);
+        throw error;
+    } finally {
+        if (connection) connection.release();
+        await pool.end();
     }
-    importTrips().catch(function(err){
-        console.error(err.message);
-        process.exit(1);
-    });
+}
+
+importTrips().catch(function (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+});

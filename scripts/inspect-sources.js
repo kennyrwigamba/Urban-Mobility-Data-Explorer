@@ -1,41 +1,27 @@
 const fs = require("fs");
-const {parse} = require ("csv-parse")
+const { parse } = require("csv-parse/sync");
+const { readTrips } = require("./read-trips");
+require("dotenv").config({ quiet: true });
 
-async function  head(file, n) {
-    return new Promise(function (resolve,reject){
-        const rows = [];
-        let columns = null;
-        let total = 0;
-        const stream = fs.createReadStream(file).pipe(parse({columns: true ,skip_empty_lines:true}));
-        stream.on("readable",function(){
-            let record 
-            while ((record = stream.read())!==null){
-                total = total + 1;
-                if (column === null ){
-                    columns = Object.keys(record);
-                }
-                if(rows.length < n ){
-                    rows.push(record);
-                }
-            }
-        });
-        stream.on("end",function (){resolve ({columns ,rows,total});});
-        stream,on("error",reject);
-    });
+async function inspect() {
+    const fileName = process.argv[2] || process.env.TRIP_PARQUET || "data/yellow_tripdata_2019-01.parquet";
+    const source = await readTrips(fileName, 2);
+    console.log(JSON.stringify({ source: fileName, totalRows: source.totalRows, columns: source.columns, sample: source.rows }, function (key, value) {
+        return typeof value === "bigint" ? value.toString() : value;
+    }, 2));
+    const zoneFile = process.env.ZONE_CSV || "data/taxi_zone_lookup.csv";
+    const zones = parse(fs.readFileSync(zoneFile, "utf8"), { columns: true, skip_empty_lines: true, bom: true });
+    console.log("Zone lookup rows: " + zones.length);
+    const geoFile = process.env.ZONE_GEOJSON || "data/taxi_zones.geojson";
+    if (fs.existsSync(geoFile)) {
+        const geojson = JSON.parse(fs.readFileSync(geoFile, "utf8"));
+        console.log("Geometry features: " + geojson.features.length);
+    } else {
+        console.log("Run import:zones to create GeoJSON from the local TLC shapefile.");
+    }
 }
 
-async function inspect(){
-    const tripFile = process.env.TRIP_CSV ||  "C:/Users/user/Downloads/yellow_tripdata_2019-01.csv";
-    const zoneFile = process.env.ZONE_CSV ||  "C:/Users/user/Downloads/taxi_zone_lookup.csv";
-    const trip = await head(tripFile, 2);
-    console.log("trip_columns: " + trip.columns.join(","));
-    console.log(JSON.stringify(trip.rows,null,1));
-    const zone = await head(zoneFile, 2);
-    console.log("zone_columns: " + zone.columns.join(","));
-    console.log("zone_rows: " + zone.total);
-}
-
-inspect ().catch(function (err){
-    console.error(err.message);
-    process.exit(1);
+inspect().catch(function (error) {
+    console.error(error.message);
+    process.exitCode = 1;
 });

@@ -1,42 +1,29 @@
-function getArgs(){
-    return {
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5432,
-        user: process.env.DB_USER || 'root',
+const fs = require("fs");
+const path = require("path");
+const mysql = require("mysql2/promise");
+require("dotenv").config({ quiet: true });
+
+async function setupDb() {
+    const database = process.env.DB_NAME || "mobility";
+    const connection = await mysql.createConnection({
+        host: process.env.DB_HOST || "127.0.0.1",
+        port: Number(process.env.DB_PORT || 3306),
+        user: process.env.DB_USER || "root",
         password: process.env.DB_PASSWORD || "",
-        database: process.env.DB_NAME || 'mobility'
-    };
-}
-
-async function setupDb(){
-    const cfg = getArgs();
-    const conn = await mysql.createConnection({
-        host: cfg.host,
-        port: cfg.port,
-        user: cfg.user,
-        password: cfg.password,
-        database: cfg.database
+        multipleStatements: true
     });
+    try {
+        await connection.query("CREATE DATABASE IF NOT EXISTS ?? CHARACTER SET utf8mb4", [database]);
+        await connection.query("USE ??", [database]);
+        const sql = fs.readFileSync(path.join(__dirname, "..", "database", "schema.sql"), "utf8");
+        await connection.query(sql);
+        console.log("Database ready: " + database);
+    } finally {
+        await connection.end();
+    }
 }
-await conn.query("CREATE DATABASE IF NOT EXISTS `" + cfg.database +"`");
-await conn.end();
 
-const pool = await mysql.createConnection({
-    host: cfg.host,
-    port: cfg.port,
-    user: cfg.user,
-    password: cfg.password,
-    database: cfg.database,
-    multipleStatements: true
+setupDb().catch(function (error) {
+    console.error(error.message);
+    process.exitCode = 1;
 });
-
-const sqlPath = path.join(__dirname,",,","database","schema.sql");
-const sql = fs.readFileSync(sqlPath, "utf8");
-await pool.query(sql);
-await pool.end();
-console.log("Database setup completed successfully." + cfg.database);
-
-setupDb().catch(function (err){
-    console.error(err.message);
-    process.exit(1);
-})
