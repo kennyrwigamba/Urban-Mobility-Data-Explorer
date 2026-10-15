@@ -8,6 +8,14 @@ The current development import uses the first **5,000 source rows**, not the ful
 
 - [Tasksheet](https://docs.google.com/spreadsheets/d/17_m0DaBuCWtHYLUwbc1sObbU-axApnu_44bMvPc2hXE/edit?usp=sharing)
 - [Scrum board](https://github.com/users/kennyrwigamba/projects/7)
+- [GitHub repository](https://github.com/kennyrwigamba/Urban-Mobility-Data-Explorer/)
+
+## Demo
+
+<video controls width="800">
+  <source src="docs/EWD%20Summative.mp4" type="video/mp4">
+  <a href="docs/EWD%20Summative.mp4">Watch the demo video</a>
+</video>
 
 ## Setup
 
