@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS data_imports(
 CREATE TABLE IF NOT EXISTS trips(
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     import_id INT NOT NULL,
-    vendor_id INT NOT NULL,
+    vendor_id INT NULL,
     pickup_datetime DATETIME NOT NULL,
     dropoff_datetime DATETIME NOT NULL,
     passenger_count INT NULL,
@@ -44,16 +44,19 @@ CREATE TABLE IF NOT EXISTS trips(
     improvement_surcharge DECIMAL (10, 2) NULL,
     total_amount DECIMAL(10, 2) NULL,
     congestion_surcharge DECIMAL(10, 2) NULL,
-    fingerprint CHAR(65) NOT NULL,
+    fingerprint CHAR(64) NOT NULL,
     is_flagged TINYINT(1) NOT NULL DEFAULT 0,
     flag_reason VARCHAR(255) NULL,
     CONSTRAINT fk_trips_import FOREIGN KEY (import_id) REFERENCES data_imports (id),
     CONSTRAINT fk_trips_pickup FOREIGN KEY (pickup_zone_id) REFERENCES taxi_zones (location_id),
-    CONSTRAINT fk_trips_droppoff FOREIGN KEY (droppoff_zone_id) REFERENCES taxi_zones (location_id),
+    CONSTRAINT fk_trips_dropoff FOREIGN KEY (dropoff_zone_id) REFERENCES taxi_zones (location_id),
+    CONSTRAINT ck_trip_time CHECK (dropoff_datetime > pickup_datetime),
+    CONSTRAINT ck_trip_distance CHECK (trip_distance >= 0),
+    CONSTRAINT ck_trip_fare CHECK (fare_amount >= 0),
     UNIQUE KEY uq_import_fingerprint (import_id,fingerprint),
-    INDEX idx_trips_pickup_time (pickup_datetime),
+    INDEX idx_trips_pickup_time (import_id, pickup_datetime),
     INDEX idx_trips_pu(pickup_zone_id),
-    INDEX idx_trips_do(droppoff_zone_id),
+    INDEX idx_trips_do(dropoff_zone_id)
 );
 
 CREATE OR REPLACE  VIEW trip_features AS 
