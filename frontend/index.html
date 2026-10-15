@@ -20,7 +20,7 @@
                 </a>
                 <nav class="nav">
                     <a href="#overview" class="nav-link">Overview</a>
-                    <a href="#geography" class="nav-link">Locations</a>
+                    <a href="#routes" class="nav-link">Routes</a>
                     <a href="#trip-records" class="nav-link">Trip records</a>
                 </nav>
             </div>
@@ -32,21 +32,21 @@
                     <p class="page-heading-small">Yellow taxi data</p>
                     <h1 class="page-heading-title">NYC taxi trips</h1>
                 </div>
-                <span class="dataset-status">Data not loaded</span>
+                <span class="dataset-status" id="dataset-status">Connecting</span>
             </div>
 
             <div class="dataset-details">
                 <div>
-                    <span class="dataset-detail-name">Period</span><span>Not loaded</span>
+                    <span class="dataset-detail-name">Period</span><span id="dataset-period">Not loaded</span>
                 </div>
                 <div>
-                    <span class="dataset-detail-name">Coverage</span><span>Not loaded</span>
+                    <span class="dataset-detail-name">Coverage</span><span id="dataset-period">Not loaded</span>
                 </div>
                 <div>
-                    <span class="dataset-detail-name">Trip times</span><span>NYC local time</span>
+                    <span class="dataset-detail-name">Trip times</span><span id="dataset-period">Not loaded</span>
                 </div>
                 <div>
-                    <span class="dataset-detail-name">Data quality</span><span>Not available</span>
+                    <span class="dataset-detail-name">Data quality</span><span id="dataset-period">Not loaded</span>
                 </div>
             </div>
 
@@ -55,10 +55,11 @@
                     <h2 id="filters-title">Filter trips</h2>
                 </div>
                 <form id="trip-filters">
+                  <fieldset id="filter-fields">  
                     <div class="filter-grid">
                         <div class="form-field">
-                            <label for="date-form">From date</label>
-                            <input type="date" id="date-form" name="dateFrom" />
+                            <label for="date-from">From date</label>
+                            <input type="date" id="date-from" name="dateFrom" />
                         </div>
                         <div class="form-field">
                             <label for="date-to">To date</label>
@@ -81,10 +82,10 @@
                             <p class="field-label">Distance (mi)</p>
                             <div class="range-inputs">
                                 <label>Min
-                                    <input type="number" id="min-distance" name="minDistance" min="0" />
+                                    <input type="number" id="min-distance" name="minDistance" min="0" step="any"/>
                                 </label>
                                 <label>Max
-                                    <input type="number" id="max-distance" name="maxDistance" min="0" />
+                                    <input type="number" id="max-distance" name="maxDistance" min="0" step="any"/>
                                 </label>
                             </div>
                         </div>
@@ -92,10 +93,10 @@
                             <p class="field-label">Metered fare ($)</p>
                             <div class="range-inputs">
                                 <label>Min
-                                    <input type="number" id="min-fare" name="minFare" min="0" />
+                                    <input type="number" id="min-fare" name="minFare" min="0" step="any"/>
                                 </label>
                                 <label>Max
-                                    <input type="number" id="max-fare" name="maxFare" min="0" />
+                                    <input type="number" id="max-fare" name="maxFare" min="0" step="any"/>
                                 </label>
                             </div>
                         </div>
@@ -104,11 +105,13 @@
                             Include flagged records
                         </label>
                         <div class="filter-actions">
-                            <button class="btn btn-primary" type="button" disabled>Apply filters</button>
-                            <button class="btn btn-secondary" type="reset" disabled>Reset</button>
+                            <button class="btn btn-primary" type="submit" id="apply-fitlers">Apply filters</button>
+                            <button class="btn btn-secondary" type="reset">Reset</button>
                         </div>
                     </div>
+                  </fieldset>
                 </form>
+                <p class="message" id="filter-message" role="status">Loading the dashboard...</p>
             </section>
 
             <section id="overview">
@@ -118,21 +121,24 @@
                 <div class="summary-grid">
                     <div class="summary-item">
                         <p>Matching trips</p>
-                        <p class="metric-value">&mdash;</p>
+                        <p class="metric-value" id="trip-count">&mdash;</p>
+                        <p class="metric-note">For the applied filters</p>
                     </div>
                     <div class="summary-item">
                         <p>Average duration</p>
-                        <p class="metric-value">&mdash;
+                        <p class="metric-value"><span id="average-duration">&mdash;</span>
                             <span class="metric-unit">min</span>
                         </p>
+                        <p class="metric-note" id="duration-count">Contributing trips unavailable</p>
                     </div>
                     <div class="summary-item">
                         <p>Average metered fare</p>
-                        <p class="metric-value">&mdash;
+                        <p class="metric-value"><span id="average-fare">&mdash;</span>
                             <span class="metric-unit">USD</span>
                         </p>
+                        <p class="metric-note" id="fare-count">Contributing trips unavailable</p>
                     </div>
-                </div>    
+                </div>     
                 
                 <div class="chart-grid">
                     <div class="panel">
@@ -140,7 +146,7 @@
                             <h3 id="pickup-chart-title">Pickups by hour</h3>
                             <p>Trip count · NYC local time</p>
                         </div>
-                        <div id="pickup-chart" class="chart-placeholder">
+                        <div id="pickup-chart" class="chart">
                             <p>No trip chart</p>
                         </div>
                     </div>
@@ -149,7 +155,7 @@
                             <h3 id="duration-chart-title">Duration by hour</h3>
                             <p>Average minutes · NYC local time</p>
                         </div>
-                        <div id="duration-chart" class="chart-placeholder">
+                        <div id="duration-chart" class="chart">
                             <p>No trip data</p>
                         </div>
                     </div>
@@ -158,36 +164,20 @@
                             <h3 id="fare-chart-title">Fare per mile</h3>
                             <p>Average USD / mile · distance bands</p>
                         </div>
-                        <div id="fare-chart" class="chart-placeholder">
+                        <div id="fare-chart" class="chart">
                             <p>No trip data</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section id="geography">
-                <div class="section-heading">
-                    <h2 id="locations-title">Locations & routes</h2>
+            <section id="routes" class="panel">
+                <div class="panel-heading">
+                    <h2 id="routes-title">Busiest routes</h2>
+                    <p>Pickup → dropoff · ranked by trip count</p>
                 </div>
-                <div class="location-grid">
-                    <div class="panel">
-                        <div class="panel-heading">
-                            <h3 id="map-title">Pickup activity</h3>
-                            <p>Pickups by taxi zone</p>
-                        </div>
-                        <div id="zone-map" class="map-placeholder">
-                            <p>No zone data</p>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-heading">
-                            <h3 id="routes-title">Busiest routes</h3>
-                            <p>Pickup → dropoff · trip count</p>
-                        </div>
-                        <div id="top-routes" class="routes-placeholder">
-                            <p>No trip data</p>
-                        </div>
-                    </div>
+                <div id="top-routes">
+                    <p class="empty-state">No data loaded</p>
                 </div>
             </section>
 
@@ -197,7 +187,14 @@
                     <div class="sort-control">
                         <label for="trip-sort">Sort by</label>
                         <select id="trip-sort" disabled>
-                            <option>Pickup time</option>
+                            <option value=""pickupDatetime:desc">Newest pickup</option>
+                            <option value="pickupDatetime:asc">Oldest pickup</option>
+                            <option value="tripDistance:desc">Longest distance</option>
+                            <option value=""tripDistance:asc">Shortest distance</option>
+                            <option value="fareAmount:desc">Highest fare</option>
+                            <option value=""fareAmount:asc">Lowest fare</option>
+                            <option value="durationMinutes:desc">Longest duration</option>
+                            <option value=""durationMinutes:asc">Shortest duration</option>
                         </select>
                     </div>
                 </div>
@@ -222,8 +219,9 @@
                         </table>
                     </div>
                     <div class="pagination">
-                        <button class="btn btn-secondary" type="button" disabled>Previous</button>
-                        <button class="btn btn-secondary" type="button" disabled>Next</button>
+                        <p id="page-information" role="status">No records loaded</p>
+                        <button class="btn btn-secondary" id="previous-page" type="button" disabled>Previous</button>
+                        <button class="btn btn-secondary" id="next-page" type="button" disabled>Next</button>
                     </div>
                 </div>
             </section>

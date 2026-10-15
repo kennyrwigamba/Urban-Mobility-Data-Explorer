@@ -1,3 +1,10 @@
+@font-face {
+    font-family: "DM Sans";
+    src: url("../assets/fonts/dm-sans.ttf") format("truetype");
+    font-weight: 100 1000;
+    font-display: swap;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -19,6 +26,7 @@ body {
     background: var(--page);
     color: var(--text);
     font-size: 14px;
+    line-height: 1.5;
 }
 
 a {
@@ -94,11 +102,11 @@ h3 {
     background: var(--page);
 }
 
-.dashboard, section {
+.dashboard, .dashboard > section {
     margin-top: 32px;
 }
 
-.page-heading, .section-padding {
+.page-heading, .section-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -288,9 +296,10 @@ input[type="checkbox"] {
     margin-top: 3px;
 }
 
-.chart-placeholder, .map-placeholder, .routes-placeholder {
+.empty-state {
     display: grid;
     place-items: center;
+    min-height: 150px;
     padding: 20px;
     border-radius: 12px;
     background: var(--page);
@@ -432,7 +441,7 @@ td {
         gap: 2px;
     }
 
-    .chart-grid, .location-grid, .summary-grid {
+    .chart-grid, .summary-grid {
         grid-template-columns: 1fr;
         gap: 14px;
     }
@@ -442,7 +451,122 @@ td {
     }
 }
 
+fieldset {
+    border: 0;
+    min-width: 0;
+}
+
+.message {
+    margin-top: 16px;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.message.error {
+    color: #9d2920;
+}
+
+.metric-note, .chart-scale {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.chart-scale {
+    margin-bottom: 8px;
+}
+
+.bar-chart {
+    display: flex;
+    gap: 3px;
+}
+
+.bar-column {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+}
+
+.bar-track {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    height: 150px;
+    border-bottom: 1px solid var(--border);
+}
+
+.bar-fill {
+    width: 80%;
+    background: #c59c24;
+    border-radius: 3px 3px 0 0;
+}
+
+.bar-label {
+    display: block;
+    padding-top: 5px;
+    height: 25px;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.route-list {
+    padding-left: 24px;
+}
+
+.route-list li {
+    padding: 12px 0 12px 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.route-list li:last-child {
+    border: 0;
+}
+
+.route-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.route-item span {
+    overflow-wrap: anywhere;
+}
+
+.route-item strong {
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
+.flag-label {
+    margin-left: 6px;
+    padding: 2px 5px;
+    background: #fae9b6;
+    border-radius: 4px;
+    font-size: 10px;
+}
+
+.pagination {
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.pagination p {
+    margin-right: auto;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.page-footer p + p {
+    margin-top: 8px;
+}
+
+
 @media (max-width: 480px) {
+    .route-item {
+        flex-direction: column;
+        gap: 4px;
+    }
     .filter-panel .section-heading, #trip-records .section-heading {
         flex-direction: column;
         gap: 8px;
