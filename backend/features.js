@@ -19,7 +19,7 @@ function getDurationMinutes(pickup, dropoff){
 
 function getSpeedMph(distance, pickup,dropoff){
     const seconds = toSeconds(pickup,dropoff);
-    const miles = number(disatnce);
+    const miles = Number(distance);
     if (seconds === null || seconds <= 0){
         return null;
     }
