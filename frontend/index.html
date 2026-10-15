@@ -5,9 +5,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Urban Mobility Data Explorer</title>
         <link rel="stylesheet" href="css/style.css">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
         <script src="js/charts.js" defer></script>
         <script src="js/app.js" defer></script>
     </head>
@@ -40,13 +37,13 @@
                     <span class="dataset-detail-name">Period</span><span id="dataset-period">Not loaded</span>
                 </div>
                 <div>
-                    <span class="dataset-detail-name">Coverage</span><span id="dataset-period">Not loaded</span>
+                    <span class="dataset-detail-name">Coverage</span><span id="dataset-scope">Not loaded</span>
                 </div>
                 <div>
-                    <span class="dataset-detail-name">Trip times</span><span id="dataset-period">Not loaded</span>
+                    <span class="dataset-detail-name">Trip times</span><span id="dataset-timezone">Not loaded</span>
                 </div>
                 <div>
-                    <span class="dataset-detail-name">Data quality</span><span id="dataset-period">Not loaded</span>
+                    <span class="dataset-detail-name">Data quality</span><span id="dataset-quality">Not loaded</span>
                 </div>
             </div>
 
@@ -55,63 +52,63 @@
                     <h2 id="filters-title">Filter trips</h2>
                 </div>
                 <form id="trip-filters">
-                  <fieldset id="filter-fields">  
-                    <div class="filter-grid">
-                        <div class="form-field">
-                            <label for="date-from">From date</label>
-                            <input type="date" id="date-from" name="dateFrom" />
-                        </div>
-                        <div class="form-field">
-                            <label for="date-to">To date</label>
-                            <input type="date" id="date-to" name="dateTo">
-                        </div>
-                        <div class="form-field">
-                            <label for="pickup-zone">Pickup zone</label>
-                            <select id="pickup-zone" name="pickupZone" disabled>
-                                <option value="">Zone not loaded</option>
-                            </select>
-                        </div>
-                        <div class="form-field">
-                            <label for="dropoff-zone">Dropoff zone</label>
-                            <select id="dropoff-zone" name="dropoffZone" disabled>
-                                <option value="">Zone not loaded</option>
-                            </select>
-                        </div>
+                    <fieldset id="filter-fields">
+                        <div class="filter-grid">
+                            <div class="form-field">
+                                <label for="date-from">From date</label>
+                                <input type="date" id="date-from" name="dateFrom" />
+                            </div>
+                            <div class="form-field">
+                                <label for="date-to">To date</label>
+                                <input type="date" id="date-to" name="dateTo">
+                            </div>
+                            <div class="form-field">
+                                <label for="pickup-zone">Pickup zone</label>
+                                <select id="pickup-zone" name="pickupZone" disabled>
+                                    <option value="">Zone not loaded</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="dropoff-zone">Dropoff zone</label>
+                                <select id="dropoff-zone" name="dropoffZone" disabled>
+                                    <option value="">Zone not loaded</option>
+                                </select>
+                            </div>
 
-                        <div class="range-field">
-                            <p class="field-label">Distance (mi)</p>
-                            <div class="range-inputs">
-                                <label>Min
-                                    <input type="number" id="min-distance" name="minDistance" min="0" step="any"/>
-                                </label>
-                                <label>Max
-                                    <input type="number" id="max-distance" name="maxDistance" min="0" step="any"/>
-                                </label>
+                            <div class="range-field">
+                                <p class="field-label">Distance (mi)</p>
+                                <div class="range-inputs">
+                                    <label>Min
+                                        <input type="number" id="min-distance" name="minDistance" min="0" step="any" />
+                                    </label>
+                                    <label>Max
+                                        <input type="number" id="max-distance" name="maxDistance" min="0" step="any" />
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="range-field">
+                                <p class="field-label">Metered fare ($)</p>
+                                <div class="range-inputs">
+                                    <label>Min
+                                        <input type="number" id="min-fare" name="minFare" min="0" step="any" />
+                                    </label>
+                                    <label>Max
+                                        <input type="number" id="max-fare" name="maxFare" min="0" step="any" />
+                                    </label>
+                                </div>
+                            </div>
+                            <label class="checkbox-label" for="include-flagged">
+                                <input type="checkbox" id="include-flagged" name="includeFlagged">
+                                Include flagged records
+                            </label>
+                            <div class="filter-actions">
+                                <button class="btn btn-primary" id="apply-filters" type="submit">Apply filters</button>
+                                <button class="btn btn-secondary" type="reset">Reset</button>
                             </div>
                         </div>
-                        <div class="range-field">
-                            <p class="field-label">Metered fare ($)</p>
-                            <div class="range-inputs">
-                                <label>Min
-                                    <input type="number" id="min-fare" name="minFare" min="0" step="any"/>
-                                </label>
-                                <label>Max
-                                    <input type="number" id="max-fare" name="maxFare" min="0" step="any"/>
-                                </label>
-                            </div>
-                        </div>
-                        <label class="checkbox-label" for="include-flagged">
-                            <input type="checkbox" id="include-flagged" name="includeFlagged">
-                            Include flagged records
-                        </label>
-                        <div class="filter-actions">
-                            <button class="btn btn-primary" type="submit" id="apply-fitlers">Apply filters</button>
-                            <button class="btn btn-secondary" type="reset">Reset</button>
-                        </div>
-                    </div>
-                  </fieldset>
+                    </fieldset>
                 </form>
-                <p class="message" id="filter-message" role="status">Loading the dashboard...</p>
+                <p class="message" id="filter-message" role="status" aria-live="polite">Loading the dashboard…</p>
             </section>
 
             <section id="overview">
@@ -138,7 +135,7 @@
                         </p>
                         <p class="metric-note" id="fare-count">Contributing trips unavailable</p>
                     </div>
-                </div>     
+                </div>    
                 
                 <div class="chart-grid">
                     <div class="panel">
@@ -186,15 +183,15 @@
                     <h2 id="records-title">Trip records</h2>
                     <div class="sort-control">
                         <label for="trip-sort">Sort by</label>
-                        <select id="trip-sort" disabled>
-                            <option value=""pickupDatetime:desc">Newest pickup</option>
+                        <select id="trip-sort">
+                            <option value="pickupDatetime:desc">Newest pickup</option>
                             <option value="pickupDatetime:asc">Oldest pickup</option>
                             <option value="tripDistance:desc">Longest distance</option>
-                            <option value=""tripDistance:asc">Shortest distance</option>
+                            <option value="tripDistance:asc">Shortest distance</option>
                             <option value="fareAmount:desc">Highest fare</option>
-                            <option value=""fareAmount:asc">Lowest fare</option>
+                            <option value="fareAmount:asc">Lowest fare</option>
                             <option value="durationMinutes:desc">Longest duration</option>
-                            <option value=""durationMinutes:asc">Shortest duration</option>
+                            <option value="durationMinutes:asc">Shortest duration</option>
                         </select>
                     </div>
                 </div>
@@ -232,4 +229,4 @@
         </main>
 
     </body>
-</html>    
+</html>

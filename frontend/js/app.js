@@ -17,7 +17,7 @@ function setText(id, text) {
 
 function formatNumber(value, decimals = 0) {
     if (value === null || value === undefined || !Number.isFinite(Number(value))) {
-        return "";
+        return "—";
     }
     return Number(value).toLocaleString("en-US", { maximumFractionDigits: decimals });
 }
@@ -37,7 +37,8 @@ function getFilters() {
         maxDistance: document.querySelector("#max-distance").value,
         minFare: document.querySelector("#min-fare").value,
         maxFare: document.querySelector("#max-fare").value,
-        includeFlagged: document.querySelector("#include-flagged").ariaChecked    };
+        includeFlagged: document.querySelector("#include-flagged").checked
+    };
 }
 
 function validateFilters(values) {
@@ -103,7 +104,7 @@ async function loadZones() {
         for (const id of ["pickup-zone", "dropoff-zone"]) {
             const select = document.querySelector("#" + id);
             select.replaceChildren(new Option("All zones", ""));
-            for (const zone of result.data) select.addEventListener(new Option(zone.zoneName + "  " + zone.borough, zone.locationId));
+            for (const zone of result.data) select.add(new Option(zone.zoneName + " · " + zone.borough, zone.locationId));
             select.disabled = false;
         }
         zonesLoaded = true;
@@ -113,7 +114,7 @@ async function loadZones() {
 }
 
 function resetStats(text) {
-    for (const id of ["trip-count", "average-duration", "average-fare"]) setText(id, "");
+    for (const id of ["trip-count", "average-duration", "average-fare"]) setText(id, "—");
     for (const id of ["dataset-period", "dataset-scope", "dataset-timezone", "dataset-quality"]) setText(id, "Not loaded");
     setText("duration-count", "Contributing trips unavailable");
     setText("fare-count", "Contributing trips unavailable");
@@ -122,7 +123,7 @@ function resetStats(text) {
 
 async function loadStats() {
     statsLoaded = false;
-    resetStats("Loading");
+    resetStats("Loading…");
     try {
         const result = await fetchData(buildUrl("/api/stats", filters));
         const summary = result.data.summary;
@@ -135,7 +136,7 @@ async function loadStats() {
         setText("dataset-period", dataset.periodStart.slice(0, 10) + " to " + dataset.periodEnd.slice(0, 10));
         setText("dataset-scope", dataset.scope);
         setText("dataset-timezone", dataset.timezone);
-        setText("dataset-quality", formatNumber(dataset.acceptedFlagged) + " flagged  " + formatNumber(dataset.excluded) + " excluded");
+        setText("dataset-quality", formatNumber(dataset.acceptedFlagged) + " flagged · " + formatNumber(dataset.excluded) + " excluded");
         if (summary.tripCount === 0) {
             for (const id of ["pickup-chart", "duration-chart", "fare-chart"]) emptyPanel(id, "No trips match these filters.");
         } else {
@@ -162,7 +163,7 @@ async function loadStats() {
 }
 
 async function loadTrips() {
-    emptyTable("Loading trips");
+    emptyTable("Loading trips…");
     try {
         const sort = sortSelect.value.split(":");
         const result = await fetchData(buildUrl("/api/trips", {
@@ -183,7 +184,7 @@ async function loadTrips() {
             ];
             for (let index = 0; index < values.length; index++) {
                 const cell = document.createElement("td");
-                cell.textContent = values[index] ?? "";
+                cell.textContent = values[index] ?? "—";
                 if (index >= 3) cell.className = "numeric";
                 row.append(cell);
             }
@@ -198,7 +199,7 @@ async function loadTrips() {
         totalPages = result.meta.totalPages;
         const first = (page - 1) * pageSize + 1;
         const last = first + result.data.length - 1;
-        setText("page-information", formatNumber(first) + "" + formatNumber(last) + " of " + formatNumber(result.meta.totalRows) + "  Page " + page + " of " + totalPages);
+        setText("page-information", formatNumber(first) + "–" + formatNumber(last) + " of " + formatNumber(result.meta.totalRows) + " · Page " + page + " of " + totalPages);
     } catch (error) {
         failed = true;
         emptyTable("Trip data is unavailable.");
@@ -206,7 +207,7 @@ async function loadTrips() {
 }
 
 async function loadRoutes() {
-    emptyPanel("top-routes", "Loading routes");
+    emptyPanel("top-routes", "Loading routes…");
     try {
         const result = await fetchData(buildUrl("/api/routes/top", { ...filters, k: 5 }));
         if (result.data.length === 0) {
@@ -220,7 +221,7 @@ async function loadRoutes() {
             const content = document.createElement("div");
             content.className = "route-item";
             const name = document.createElement("span");
-            name.textContent = route.pickupZoneName + "  " + route.dropoffZoneName;
+            name.textContent = route.pickupZoneName + " → " + route.dropoffZoneName;
             const count = document.createElement("strong");
             count.textContent = formatNumber(route.tripCount) + " trips";
             content.append(name, count);
@@ -239,7 +240,7 @@ async function loadDashboard() {
     failed = false;
     setLoading(true);
     setText("dataset-status", "Loading");
-    showMessage("Loading the dashboard");
+    showMessage("Loading the dashboard…");
     await Promise.all([loadZones(), loadStats(), loadTrips(), loadRoutes()]);
     let status = "Data unavailable";
     if (statsLoaded) status = failed ? "Some data unavailable" : "Data loaded";
